@@ -46,6 +46,8 @@ create table if not exists lesson_inquiries (
 	phone text,
 	student_name text not null,
 	student_dob date not null,
+	-- New: store selected timeslots as text[]
+	timeslots text[],
 	level text not null,
 	preferences text,
 	submitted_at timestamptz not null default now()
@@ -74,6 +76,13 @@ create policy "Allow inserts for anon" on camp_registrations for insert to anon 
 ```
 
 For production, tighten policies to specific columns or use an Edge Function.
+
+### Migration for existing projects
+If you already created the tables, add the new column to `lesson_inquiries`:
+
+```sql
+alter table lesson_inquiries add column if not exists timeslots text[];
+```
 
 ### Admin page
 - Route: `/admin`

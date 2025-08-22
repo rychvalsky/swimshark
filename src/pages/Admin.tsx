@@ -10,6 +10,7 @@ interface LessonInquiry {
   phone: string | null
   student_name: string
   student_dob: string // ISO date
+  timeslots?: string[]
   level: string
   preferences: string | null
   submitted_at: string // ISO datetime
@@ -69,7 +70,7 @@ export default function Admin(){
   const exportCsv = () => {
     const rows = (tab === 'lessons' ? lessons : camp) ?? []
     const headers = tab === 'lessons'
-      ? ['submitted_at','first_name','last_name','email','phone','student_name','student_dob','level','preferences','id']
+      ? ['submitted_at','first_name','last_name','email','phone','student_name','student_dob','timeslots','level','preferences','id']
       : ['submitted_at','parent_name','email','camper_name','camper_dob','preferred_week','notes','id']
     const csv = [headers.join(',')]
     for (const r of rows as any[]){
@@ -125,6 +126,7 @@ function LessonsTable({ rows }: { rows: LessonInquiry[] | null }){
           <th>Telefón</th>
           <th>Meno plavca</th>
           <th>Dátum narodenia</th>
+          <th>Termíny</th>
           <th>Úroveň</th>
           <th>Preferencie</th>
           <th>ID</th>
@@ -140,6 +142,7 @@ function LessonsTable({ rows }: { rows: LessonInquiry[] | null }){
             <td>{r.phone ?? ''}</td>
             <td>{r.student_name}</td>
             <td>{r.student_dob}</td>
+            <td>{Array.isArray(r.timeslots) ? r.timeslots.join('; ') : ''}</td>
             <td>{r.level}</td>
             <td>{r.preferences ?? ''}</td>
             <td className="muted" title={r.id}>{r.id.slice(0,8)}…</td>
