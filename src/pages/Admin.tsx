@@ -15,6 +15,7 @@ interface LessonInquiry {
   timeslots?: string[]
   level: string
   preferences: string | null
+  has_health_issues?: boolean
   health_issues?: string | null
   submitted_at: string // ISO datetime
 }
@@ -115,9 +116,10 @@ export default function Admin(){
       ? [
           'submitted_at',
           'first_name','last_name','email','phone',
-          // New: separate student name columns (keep student_name for back-compat)
           'student_first_name','student_last_name','student_name',
-          'student_dob','timeslots','level','preferences','health_issues','id'
+          'student_dob','timeslots','level','preferences',
+          // New: health flags
+          'has_health_issues','health_issues','id'
         ]
       : ['submitted_at','parent_name','email','camper_name','camper_dob','preferred_week','notes','id']
     const csv = [headers.join(',')]
@@ -150,8 +152,6 @@ export default function Admin(){
           <button className="button secondary" onClick={() => { localStorage.removeItem('adminAuthed'); window.location.href='/admin/prihlasenie' }}>Odhlásiť</button>
         </div>
       </div>
-            <th>Meno plavca</th>
-            <th>Priezvisko plavca</th>
       {error && <div className="card" style={{ borderColor:'#fecaca', color:'#991b1b' }}>Chyba: {error}</div>}
 
       <div className="card" style={{ display:'flex', gap:12, alignItems:'flex-end', flexWrap:'wrap' }}>
@@ -195,6 +195,7 @@ function LessonsTable({ rows }: { rows: LessonInquiry[] | null }){
           <th>Úroveň</th>
           <th>Preferencie</th>
           <th>Zdravotné obmedzenia</th>
+          <th>Popis obmedzení</th>
           <th>ID</th>
         </tr>
       </thead>
@@ -212,6 +213,7 @@ function LessonsTable({ rows }: { rows: LessonInquiry[] | null }){
             <td>{Array.isArray(r.timeslots) ? r.timeslots.join('; ') : ''}</td>
             <td>{r.level}</td>
             <td>{r.preferences ?? ''}</td>
+            <td>{r.has_health_issues === true ? 'Áno' : (r.has_health_issues === false ? 'Nie' : '')}</td>
             <td>{r.health_issues ?? ''}</td>
             <td className="muted" title={r.id}>{r.id.slice(0,8)}…</td>
           </tr>

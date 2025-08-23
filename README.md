@@ -53,6 +53,8 @@ create table if not exists lesson_inquiries (
 	timeslots text[],
 	level text not null,
 	preferences text,
+	-- New: flag whether user indicated health issues
+	has_health_issues boolean,
 	-- New: optional health issues description
 	health_issues text,
 	submitted_at timestamptz not null default now()
@@ -95,10 +97,15 @@ If you already created the tables, add the new column to `lesson_inquiries`:
 
 ```sql
 alter table lesson_inquiries add column if not exists timeslots text[];
+-- New: boolean flag for health issues present
+alter table lesson_inquiries add column if not exists has_health_issues boolean;
 alter table lesson_inquiries add column if not exists health_issues text;
 -- New: split child name into first/last (keep existing student_name for back-compat)
 alter table lesson_inquiries add column if not exists student_first_name text;
 alter table lesson_inquiries add column if not exists student_last_name text;
+
+-- Optional backfill: mark rows with non-null health_issues as true
+update lesson_inquiries set has_health_issues = true where health_issues is not null and has_health_issues is null;
 
 -- New: create the lesson_terms table if missing
 create table if not exists lesson_terms (
