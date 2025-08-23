@@ -71,6 +71,12 @@ main.container{ flex:1; padding: 32px 16px 48px; }
 .options-column{ display:flex; flex-direction: column; gap:8px; margin-top: 6px; }
 .checkbox{ display:flex; align-items:center; gap:8px; }
 
+/* Checkbox card grid */
+.options-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:10px; margin-top:8px; }
+.option-card{ display:flex; gap:10px; align-items:flex-start; padding:10px; border:1px solid var(--border); border-radius: var(--radius); background:#fff; cursor:pointer; }
+.option-card:hover{ border-color:#cbd5e1; background:#f8fafc; }
+.option-card input{ margin-top: 3px; }
+
 /* Link-like button used inline */
 .link-button{ background:none; border:none; padding:0; color: var(--brand); cursor:pointer; font: inherit; }
 .link-button:hover{ text-decoration: underline; }
@@ -85,6 +91,13 @@ main.container{ flex:1; padding: 32px 16px 48px; }
 
 .site-footer{ border-top:1px solid var(--border); background: #ffffff; }
 .site-footer .container{ padding: 16px; }
+
+/* Breadcrumbs */
+.breadcrumbs{ font-size: 13px; color: var(--muted); margin: 4px 0 8px; }
+.breadcrumbs a{ color: var(--muted); text-decoration: none; }
+.breadcrumbs a:hover{ text-decoration: underline; }
+.breadcrumbs .sep{ margin: 0 6px; color: #cbd5e1; }
+.breadcrumbs .current{ color: var(--text); }
 
 @media (max-width: 860px){
   .hero{ grid-template-columns: 1fr; }

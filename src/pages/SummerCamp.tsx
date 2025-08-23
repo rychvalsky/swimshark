@@ -49,7 +49,7 @@ export default function SummerCamp(){
 
   return (
     <div className="section">
-      <h1>Letný tábor</h1>
+  <h1>Letný tábor</h1>
       <p className="muted">Týždňové tábory plné zábavy, bezpečnosti a rozvoja zručností.</p>
 
   <form className="form" onSubmit={handleSubmit(onSubmit)} noValidate aria-busy={isSubmitting}>

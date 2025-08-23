@@ -9,10 +9,13 @@ interface LessonInquiry {
   email: string
   phone: string | null
   student_name: string
+  student_first_name?: string
+  student_last_name?: string
   student_dob: string // ISO date
   timeslots?: string[]
   level: string
   preferences: string | null
+  health_issues?: string | null
   submitted_at: string // ISO datetime
 }
 
@@ -70,7 +73,13 @@ export default function Admin(){
   const exportCsv = () => {
     const rows = (tab === 'lessons' ? lessons : camp) ?? []
     const headers = tab === 'lessons'
-      ? ['submitted_at','first_name','last_name','email','phone','student_name','student_dob','timeslots','level','preferences','id']
+      ? [
+          'submitted_at',
+          'first_name','last_name','email','phone',
+          // New: separate student name columns (keep student_name for back-compat)
+          'student_first_name','student_last_name','student_name',
+          'student_dob','timeslots','level','preferences','health_issues','id'
+        ]
       : ['submitted_at','parent_name','email','camper_name','camper_dob','preferred_week','notes','id']
     const csv = [headers.join(',')]
     for (const r of rows as any[]){
@@ -102,7 +111,8 @@ export default function Admin(){
           <button className="button secondary" onClick={() => { localStorage.removeItem('adminAuthed'); window.location.href='/admin/prihlasenie' }}>Odhlásiť</button>
         </div>
       </div>
-
+            <th>Meno plavca</th>
+            <th>Priezvisko plavca</th>
       {error && <div className="card" style={{ borderColor:'#fecaca', color:'#991b1b' }}>Chyba: {error}</div>}
 
       <div className="card" style={{ overflowX:'auto' }}>
@@ -125,10 +135,12 @@ function LessonsTable({ rows }: { rows: LessonInquiry[] | null }){
           <th>Email</th>
           <th>Telefón</th>
           <th>Meno plavca</th>
+          <th>Priezvisko plavca</th>
           <th>Dátum narodenia</th>
           <th>Termíny</th>
           <th>Úroveň</th>
           <th>Preferencie</th>
+          <th>Zdravotné obmedzenia</th>
           <th>ID</th>
         </tr>
       </thead>
@@ -140,11 +152,13 @@ function LessonsTable({ rows }: { rows: LessonInquiry[] | null }){
             <td>{r.last_name}</td>
             <td>{r.email}</td>
             <td>{r.phone ?? ''}</td>
-            <td>{r.student_name}</td>
+            <td>{r.student_first_name ?? (r.student_name?.split(' ')[0] ?? '')}</td>
+            <td>{r.student_last_name ?? (r.student_name?.split(' ').slice(1).join(' ') ?? '')}</td>
             <td>{r.student_dob}</td>
             <td>{Array.isArray(r.timeslots) ? r.timeslots.join('; ') : ''}</td>
             <td>{r.level}</td>
             <td>{r.preferences ?? ''}</td>
+            <td>{r.health_issues ?? ''}</td>
             <td className="muted" title={r.id}>{r.id.slice(0,8)}…</td>
           </tr>
         ))}

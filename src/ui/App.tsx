@@ -1,10 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import Breadcrumbs from './Breadcrumbs'
 
 export default function App() {
   return (
     <div className="app-root">
       <Header />
       <main className="container">
+        <Breadcrumbs />
         <Outlet />
       </main>
       <Footer />

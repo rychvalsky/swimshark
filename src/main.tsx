@@ -4,7 +4,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './ui/App'
 import Home from './pages/Home'
 import About from './pages/About'
-import Lessons from './pages/Lessons'
+import LessonsInfo from './pages/LessonsInfo'
+import LessonsForm from './pages/LessonsForm'
 import SummerCamp from './pages/SummerCamp'
 import Contact from './pages/Contact'
 import Admin from './pages/Admin'
@@ -19,7 +20,8 @@ const router = createBrowserRouter([
     children: [
   { index: true, element: <Home /> },
   { path: 'o-nas', element: <About /> },
-  { path: 'lekcie', element: <Lessons /> },
+  { path: 'lekcie', element: <LessonsInfo /> },
+  { path: 'lekcie/prihlasenie', element: <LessonsForm /> },
   { path: 'letny-tabor', element: <SummerCamp /> },
   { path: 'kontakt', element: <Contact /> },
   { path: 'admin', element: <RequireAuth><Admin /></RequireAuth> },

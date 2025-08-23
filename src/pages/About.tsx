@@ -1,7 +1,7 @@
 export default function About(){
   return (
     <div className="section">
-    <h1>O SwimShark</h1>
+  <h1>O SwimShark</h1>
     <p className="muted">Sme lokálna plavecká škola zameraná na budovanie sebavedomia, techniky a celoživotnej lásky k vode.</p>
 
       <div className="card-grid">

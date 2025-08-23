@@ -44,12 +44,17 @@ create table if not exists lesson_inquiries (
 	last_name text not null,
 	email text not null,
 	phone text,
-	student_name text not null,
+	student_name text not null, -- legacy aggregate full name
+	-- New: separate child name columns
+	student_first_name text,
+	student_last_name text,
 	student_dob date not null,
 	-- New: store selected timeslots as text[]
 	timeslots text[],
 	level text not null,
 	preferences text,
+	-- New: optional health issues description
+	health_issues text,
 	submitted_at timestamptz not null default now()
 );
 
@@ -82,6 +87,10 @@ If you already created the tables, add the new column to `lesson_inquiries`:
 
 ```sql
 alter table lesson_inquiries add column if not exists timeslots text[];
+alter table lesson_inquiries add column if not exists health_issues text;
+-- New: split child name into first/last (keep existing student_name for back-compat)
+alter table lesson_inquiries add column if not exists student_first_name text;
+alter table lesson_inquiries add column if not exists student_last_name text;
 ```
 
 ### Admin page

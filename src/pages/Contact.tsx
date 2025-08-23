@@ -1,7 +1,7 @@
 export default function Contact(){
   return (
     <div className="section">
-    <h1>Kontakt</h1>
+  <h1>Kontakt</h1>
     <p className="muted">Máte otázku? Radi pomôžeme.</p>
       <div className="card">
         <p>
