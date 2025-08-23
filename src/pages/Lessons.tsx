@@ -12,6 +12,8 @@ type ApplyForm = {
   email: string
   phone: string
   gdpr: boolean
+  hasHealthIssues?: 'ano' | 'nie'
+  healthIssues?: string
 }
 
 const TIMESLOT_OPTIONS = [
@@ -29,7 +31,7 @@ const TIMESLOT_OPTIONS = [
 ] as const
 
 export default function Lessons(){
-  const { register, handleSubmit, formState: { errors, isSubmitting, isSubmitSuccessful }, setError, clearErrors } = useForm<ApplyForm>()
+  const { register, handleSubmit, formState: { errors, isSubmitting, isSubmitSuccessful }, watch } = useForm<ApplyForm>()
   // Keep inputs enabled during submission; lock only after success to preserve values for validation
   const inputsLocked = isSubmitSuccessful
   const btnLocked = isSubmitting || isSubmitSuccessful
@@ -50,9 +52,9 @@ export default function Lessons(){
   student_last_name: data.studentLastName || '-',
         student_dob: data.studentDob,
         timeslots: data.timeslots,
-        level: 'nezaradene',
-        preferences: null,
-        health_issues: null,
+  level: 'nezaradene',
+  preferences: null,
+  health_issues: (data.hasHealthIssues === 'ano') ? (data.healthIssues?.trim() || null) : null,
         submitted_at: new Date().toISOString(),
       })
     if (error){
@@ -106,6 +108,8 @@ Tím SwimShark`
           </div>
         </div>
 
+        
+
         <div>
           <label>Dátum narodenia</label>
           <input type="date" className="input" disabled={inputsLocked} {...register('studentDob', { required: 'Dátum narodenia je povinný' })} />
@@ -156,6 +160,40 @@ Tím SwimShark`
             {errors.phone && <div className="error">{errors.phone.message}</div>}
           </div>
         </div>
+
+  <div>
+          <label>Má dieťa zdravotné obmedzenia?</label>
+          <div className="options-column" role="group" aria-label="Zdravotné obmedzenia">
+            <label className="checkbox">
+              <input type="radio" value="nie" disabled={inputsLocked} {...register('hasHealthIssues', { required: 'Vyberte odpoveď' })} />
+              <span>Nie</span>
+            </label>
+            <label className="checkbox">
+              <input type="radio" value="ano" disabled={inputsLocked} {...register('hasHealthIssues', { required: 'Vyberte odpoveď' })} />
+              <span>Áno</span>
+            </label>
+          </div>
+          {errors.hasHealthIssues && <div className="error">{errors.hasHealthIssues.message as string}</div>}
+        </div>
+
+        {watch('hasHealthIssues') === 'ano' && (
+          <div>
+            <label htmlFor="healthIssues">Aké zdravotné obmedzenia?</label>
+            <textarea
+              id="healthIssues"
+              className="textarea"
+              rows={3}
+              placeholder="Napr.: astma, alergia na chlór, kožné ochorenia, epilepsia, kardiovaskulárne ťažkosti, poruchy imunity, iné…"
+              disabled={inputsLocked}
+              aria-describedby="healthIssuesHelp"
+              {...register('healthIssues', {
+                validate: (v) => (watch('hasHealthIssues') !== 'ano' || (v && v.trim().length >= 3)) || 'Uveďte aspoň krátky popis',
+              })}
+            />
+            <div id="healthIssuesHelp" className="helper">Uveďte prosím stručný popis a prípadné odporúčania lekára.</div>
+            {errors.healthIssues && <div className="error">{errors.healthIssues.message as string}</div>}
+          </div>
+        )}
 
         <div>
           <label className="checkbox">
