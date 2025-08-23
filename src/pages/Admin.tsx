@@ -38,6 +38,12 @@ export default function Admin(){
   const [camp, setCamp] = useState<CampRegistration[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Lesson terms editor state
+  const [ltStart, setLtStart] = useState<string>('')
+  const [ltEnd, setLtEnd] = useState<string>('')
+  const [ltLoading, setLtLoading] = useState<boolean>(false)
+  const [ltSaving, setLtSaving] = useState<boolean>(false)
+  const [ltMsg, setLtMsg] = useState<string | null>(null)
 
   const load = async (which: Tab | 'both' = 'both') => {
     setLoading(true)
@@ -67,6 +73,39 @@ export default function Admin(){
   }
 
   useEffect(() => { load('both') }, [])
+  useEffect(() => { loadLessonTerms() }, [])
+
+  async function loadLessonTerms(){
+    try{
+      setLtLoading(true)
+      setLtMsg(null)
+      const { data, error } = await supabase.from('lesson_terms').select('*').eq('id', 1).maybeSingle()
+      if (error) throw error
+      if (data){
+        setLtStart(data.start_date ?? '')
+        setLtEnd(data.end_date ?? '')
+      }
+    } catch(e:any){
+      setLtMsg(e?.message || 'Nepodarilo sa načítať termíny')
+    } finally {
+      setLtLoading(false)
+    }
+  }
+
+  async function saveLessonTerms(){
+    try{
+      setLtSaving(true)
+      setLtMsg(null)
+      const payload = { id: 1, start_date: ltStart || null, end_date: ltEnd || null, updated_at: new Date().toISOString() }
+      const { error } = await supabase.from('lesson_terms').upsert(payload, { onConflict: 'id' })
+      if (error) throw error
+      setLtMsg('Uložené')
+    } catch(e:any){
+      setLtMsg(e?.message || 'Ukladanie zlyhalo')
+    } finally {
+      setLtSaving(false)
+    }
+  }
 
   const visible = tab === 'lessons' ? lessons : camp
 
@@ -114,6 +153,21 @@ export default function Admin(){
             <th>Meno plavca</th>
             <th>Priezvisko plavca</th>
       {error && <div className="card" style={{ borderColor:'#fecaca', color:'#991b1b' }}>Chyba: {error}</div>}
+
+      <div className="card" style={{ display:'flex', gap:12, alignItems:'flex-end', flexWrap:'wrap' }}>
+        <div style={{ display:'grid', gap:8 }}>
+          <label style={{ fontWeight:600 }}>Termíny lekcií (od – do)</label>
+          <div style={{ display:'flex', gap:8 }}>
+            <input className="input" type="date" value={ltStart} onChange={e => setLtStart(e.target.value)} disabled={ltLoading || ltSaving} />
+            <input className="input" type="date" value={ltEnd} onChange={e => setLtEnd(e.target.value)} disabled={ltLoading || ltSaving} />
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="button secondary" onClick={loadLessonTerms} disabled={ltLoading || ltSaving}>{ltLoading ? 'Načítavam…' : 'Načítať'}</button>
+          <button className="button" onClick={saveLessonTerms} disabled={ltLoading || ltSaving}>{ltSaving ? 'Ukladám…' : 'Uložiť'}</button>
+        </div>
+        {ltMsg && <div className="helper">{ltMsg}</div>}
+      </div>
 
       <div className="card" style={{ overflowX:'auto' }}>
         {tab === 'lessons' ? <LessonsTable rows={lessons} /> : <CampTable rows={camp} />}

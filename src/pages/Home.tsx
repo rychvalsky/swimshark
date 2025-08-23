@@ -1,6 +1,16 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export default function Home(){
+  const [start, setStart] = useState<string | null>(null)
+  const [end, setEnd] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.from('lesson_terms').select('*').eq('id', 1).maybeSingle().then(({ data }) => {
+      if (data){ setStart(data.start_date || null); setEnd(data.end_date || null) }
+    })
+  }, [])
   return (
     <div className="home">
       <section className="hero">
@@ -11,6 +21,9 @@ export default function Home(){
             <Link to="/lekcie" className="button">Rezervovať lekcie</Link>
             <Link to="/letny-tabor" className="button secondary">Letný tábor</Link>
           </div>
+          <p className="helper" style={{ marginTop: 8 }}>
+            Jesenný kurz: <strong>{start || '22.9.2025'} – {end || '23.1.2026'}</strong> <span className="muted">(počas sviatkov a prázdnin sa nepláva)</span>
+          </p>
         </div>
         <div className="card">
           <h3>Prečo SwimShark?</h3>

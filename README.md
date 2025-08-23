@@ -68,6 +68,14 @@ create table if not exists camp_registrations (
 	notes text,
 	submitted_at timestamptz not null default now()
 );
+
+-- Lesson terms (single-row config)
+create table if not exists lesson_terms (
+	id int primary key check (id = 1),
+	start_date date,
+	end_date date,
+	updated_at timestamptz default now()
+);
 ```
 
 4. Ensure Row Level Security (RLS) is configured to allow inserts from anon key, e.g. temporary open insert policy while testing:
@@ -91,6 +99,17 @@ alter table lesson_inquiries add column if not exists health_issues text;
 -- New: split child name into first/last (keep existing student_name for back-compat)
 alter table lesson_inquiries add column if not exists student_first_name text;
 alter table lesson_inquiries add column if not exists student_last_name text;
+
+-- New: create the lesson_terms table if missing
+create table if not exists lesson_terms (
+	id int primary key check (id = 1),
+	start_date date,
+	end_date date,
+	updated_at timestamptz default now()
+);
+insert into lesson_terms (id, start_date, end_date)
+	values (1, '2025-09-22', '2026-01-23')
+	on conflict (id) do nothing;
 ```
 
 ### Admin page
@@ -105,6 +124,15 @@ create policy "Allow selects for anon" on camp_registrations for select to anon 
 ```
 
 For production, protect the admin page (e.g., with Supabase Auth), or run it behind a protected network. You can also remove the route entirely when deploying.
+
+For the `lesson_terms` table (to edit dates from Admin during testing):
+
+```sql
+alter table lesson_terms enable row level security;
+create policy "Allow selects for anon" on lesson_terms for select to anon using (true);
+create policy "Allow upserts for anon" on lesson_terms for insert to anon with check (true);
+create policy "Allow updates for anon" on lesson_terms for update to anon using (true) with check (true);
+```
 
 ### Protecting `/admin` with Supabase Auth
 - The app uses Supabase Email+Password sign-in.
