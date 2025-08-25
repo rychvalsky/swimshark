@@ -1,0 +1,20 @@
+# Apache config: route API and enable SPA fallback
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Force HTTPS (handles direct and proxy setups)
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # API route to PHP endpoint
+  RewriteRule ^api/send-confirmation$ api/send-confirmation.php [L]
+
+  # Don’t rewrite existing files or directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # SPA fallback
+  RewriteRule ^ index.html [L]
+</IfModule>

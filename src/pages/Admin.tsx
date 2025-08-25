@@ -24,11 +24,14 @@ interface CampRegistration {
   id: string
   parent_name: string
   email: string
+  parent_phone?: string | null
   camper_name: string
   camper_dob: string // ISO date
   preferred_week: string
+  t_shirt_size?: string | null
   notes: string | null
   submitted_at: string // ISO datetime
+  campers?: { name: string; dob: string; size?: string }[] | null
 }
 
 type Tab = 'lessons' | 'camp'
@@ -121,7 +124,7 @@ export default function Admin(){
           // New: health flags
           'has_health_issues','health_issues','id'
         ]
-      : ['submitted_at','parent_name','email','camper_name','camper_dob','preferred_week','notes','id']
+  : ['submitted_at','parent_name','email','parent_phone','camper_name','camper_dob','preferred_week','t_shirt_size','notes','campers','id']
     const csv = [headers.join(',')]
     for (const r of rows as any[]){
       const line = headers.map(h => JSON.stringify((r as any)[h] ?? ''))
@@ -233,9 +236,12 @@ function CampTable({ rows }: { rows: CampRegistration[] | null }){
           <th>Odoslané</th>
           <th>Rodič</th>
           <th>Email</th>
-          <th>Účastník</th>
-          <th>Dátum narodenia</th>
+          <th>Telefón</th>
+          <th>Účastník (1.)</th>
+          <th>Dátum narodenia (1.)</th>
+          <th>Ďalší účastníci</th>
           <th>Týždeň</th>
+          <th>Veľkosť trička</th>
           <th>Poznámky</th>
           <th>ID</th>
         </tr>
@@ -246,9 +252,12 @@ function CampTable({ rows }: { rows: CampRegistration[] | null }){
             <td>{formatDateTime(r.submitted_at)}</td>
             <td>{r.parent_name}</td>
             <td>{r.email}</td>
+            <td>{r.parent_phone ?? ''}</td>
             <td>{r.camper_name}</td>
             <td>{r.camper_dob}</td>
+            <td>{Array.isArray(r.campers) && r.campers.length > 1 ? r.campers.slice(1).map(c => `${c.name} (${c.dob}${c.size ? `, tričko: ${c.size}` : ''})`).join('; ') : ''}</td>
             <td>{r.preferred_week}</td>
+            <td>{r.t_shirt_size ?? ''}</td>
             <td>{r.notes ?? ''}</td>
             <td className="muted" title={r.id}>{r.id.slice(0,8)}…</td>
           </tr>

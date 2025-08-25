@@ -27,12 +27,19 @@ main.container{ flex:1; padding: 32px 16px 48px; }
 .header-inner{ display:flex; align-items:center; justify-content: space-between; padding: 12px 0; }
 .brand{ display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing: .2px; }
 .logo{ font-size: 28px; }
+.logo-wrap{ display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; }
+.logo-img{ width:40px; height:40px; object-fit: contain; display:block; }
 .brand-text{ font-size: 20px; }
 
 .nav{ display:flex; gap:8px; }
 .nav a{ color: var(--muted); text-decoration: none; padding: 8px 14px; border-radius: 9999px; border:1px solid transparent; }
 .nav a:hover{ color: var(--text); background: #f1f5f9; border-color: #e2e8f0; }
 .nav a.active{ color:#ffffff; background: var(--brand); border-color: transparent; }
+
+/* Mobile menu button */
+.menu-toggle{ display:none; gap:4px; flex-direction: column; align-items:center; justify-content:center; width:40px; height:40px; border-radius: 10px; border:1px solid var(--border); background:#fff; cursor:pointer; }
+.menu-toggle:focus{ outline:none; box-shadow: 0 0 0 3px var(--ring); }
+.menu-bar{ width:20px; height:2px; background: var(--text); display:block; }
 
 .hero{ display:grid; grid-template-columns: 1.2fr 1fr; gap:24px; align-items:center; padding: 16px 0; }
 .hero h1{ margin:0 0 12px; font-size: clamp(28px,4vw,44px); }
@@ -102,4 +109,11 @@ main.container{ flex:1; padding: 32px 16px 48px; }
 @media (max-width: 860px){
   .hero{ grid-template-columns: 1fr; }
   .row{ grid-template-columns: 1fr; }
+  .menu-toggle{ display:flex; }
+  .nav{ position: absolute; top: 60px; right: 16px; left: 16px; display:none; flex-direction: column; gap:8px; background:#fff; border:1px solid var(--border); border-radius: var(--radius); padding:8px; box-shadow: 0 16px 40px rgba(2,6,23,0.12); }
+  .nav.open{ display:flex; }
+  .nav a{ padding: 10px 12px; border-radius: 10px; border:1px solid transparent; }
+  /* Smaller logo on mobile */
+  .logo-wrap{ width:28px; height:28px; }
+  .logo-img{ width:28px; height:28px; }
 }

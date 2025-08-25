@@ -64,9 +64,15 @@ create table if not exists camp_registrations (
 	id uuid primary key default gen_random_uuid(),
 	parent_name text not null,
 	email text not null,
+	parent_phone text,
 	camper_name text not null,
 	camper_dob date not null,
 	preferred_week text not null,
+	-- New: t-shirt size selection
+	t_shirt_size text,
+	-- New: structured list of campers for multi-child submissions
+	-- Sample value: [{"name":"Anna","dob":"2017-05-10","size":"122"}, {"name":"Peter","dob":"2015-03-01","size":"146"}]
+	campers jsonb,
 	notes text,
 	submitted_at timestamptz not null default now()
 );
@@ -117,6 +123,13 @@ create table if not exists lesson_terms (
 insert into lesson_terms (id, start_date, end_date)
 	values (1, '2025-09-22', '2026-01-23')
 	on conflict (id) do nothing;
+
+-- Camp: add t-shirt size column if missing
+alter table camp_registrations add column if not exists t_shirt_size text;
+-- Camp: add campers jsonb column if missing
+alter table camp_registrations add column if not exists campers jsonb;
+-- Camp: add parent phone column if missing
+alter table camp_registrations add column if not exists parent_phone text;
 ```
 
 ### Admin page

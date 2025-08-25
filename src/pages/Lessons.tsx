@@ -54,6 +54,7 @@ export default function Lessons(){
         timeslots: data.timeslots,
   level: 'nezaradene',
   preferences: null,
+  has_health_issues: data.hasHealthIssues === 'ano',
   health_issues: (data.hasHealthIssues === 'ano') ? (data.healthIssues?.trim() || null) : null,
         submitted_at: new Date().toISOString(),
       })

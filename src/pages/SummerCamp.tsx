@@ -1,34 +1,74 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
+import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type CampForm = {
   parentName: string
   email: string
-  camperName: string
-  camperDob: string
+  parentPhone: string
+  childrenCount: number
+  children: { name: string; dob: string; size: string }[]
   week: string
   notes?: string
+  gdpr: boolean
 }
 
 export default function SummerCamp(){
-  const { register, handleSubmit, formState: { errors, isSubmitting, isSubmitSuccessful } } = useForm<CampForm>()
+  const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting, isSubmitSuccessful } } = useForm<CampForm>({
+    defaultValues: {
+      childrenCount: 1,
+  children: [{ name: '', dob: '', size: '' }],
+      gdpr: false,
+    }
+  })
+  const { fields, replace } = useFieldArray({ control, name: 'children' })
   const locked = isSubmitting || isSubmitSuccessful
+  const [showGdpr, setShowGdpr] = useState(false)
 
   const onSubmit = async (data: CampForm) => {
-  const { error } = await supabase
+  const campers = (data.children || [])
+      .filter(c => c && c.name && c.dob && c.size)
+      .map(c => ({ name: c.name, dob: c.dob, size: c.size }))
+  const first = campers[0] || { name: '', dob: '' }
+  let { error } = await supabase
       .from('camp_registrations')
       .insert({
         parent_name: data.parentName,
         email: data.email,
-        camper_name: data.camperName,
-        camper_dob: data.camperDob,
+        parent_phone: data.parentPhone,
+        camper_name: first.name, // legacy back-compat
+        camper_dob: first.dob || null, // legacy back-compat
+        campers,
         preferred_week: data.week,
+  t_shirt_size: (first as any).size || null,
         notes: data.notes ?? null,
         submitted_at: new Date().toISOString(),
       })
     if (error) {
-      alert(`Nepodarilo sa odoslať formulár: ${error.message}`)
-      return
+      // Backward-compatible retry if DB doesn't have parent_phone yet
+      if ((error.message || '').toLowerCase().includes('parent_phone')){
+        const mergedNotes = [data.notes?.trim(), `Telefón rodiča: ${data.parentPhone}`].filter(Boolean).join('\n')
+        const retry = await supabase
+          .from('camp_registrations')
+          .insert({
+            parent_name: data.parentName,
+            email: data.email,
+            camper_name: first.name,
+            camper_dob: first.dob || null,
+            campers,
+            preferred_week: data.week,
+            t_shirt_size: (first as any).size || null,
+            notes: mergedNotes || null,
+            submitted_at: new Date().toISOString(),
+          })
+        if (retry.error){
+          alert(`Nepodarilo sa odoslať formulár: ${retry.error.message}`)
+          return
+        }
+      } else {
+        alert(`Nepodarilo sa odoslať formulár: ${error.message}`)
+        return
+      }
     }
     try {
       await fetch('/api/send-confirmation', {
@@ -37,14 +77,14 @@ export default function SummerCamp(){
         body: JSON.stringify({
           to: data.email,
           subject: 'Potvrdenie žiadosti – SwimShark',
-          text: `Dobrý deň,\n\nĎakujeme za žiadosť o miesto v letnom tábore pre ${data.camperName}. Ozveme sa vám do 1 pracovného dňa.\n\nTím SwimShark`,
-          html: `<p>Dobrý deň,</p><p>Ďakujeme za žiadosť o miesto v letnom tábore pre <b>${data.camperName}</b>. Ozveme sa vám do 1 pracovného dňa.</p><p>Tím SwimShark</p>`
+          text: `Dobrý deň,\n\nĎakujeme za žiadosť o miesto v letnom tábore. Ozveme sa vám do 1 pracovného dňa.\n\nZhrnutie:\n- Týždeň: ${data.week}\n- Deti: ${campers.map(c => `${c.name} (${c.dob}, tričko: ${c.size})`).join(', ')}\n- Telefón: ${data.parentPhone}\n\nTím SwimShark`,
+          html: `<p>Dobrý deň,</p><p>Ďakujeme za žiadosť o miesto v letnom tábore. Ozveme sa vám do 1 pracovného dňa.</p><p><strong>Zhrnutie:</strong><br/>Týždeň: ${data.week}<br/>Deti: ${campers.map(c => `${c.name} (${c.dob}, tričko: ${c.size})`).join(', ')}<br/>Telefón: ${data.parentPhone}</p><p>Tím SwimShark</p>`
         })
       })
     } catch (e) {
       console.warn('Email send failed', e)
     }
-    alert(`Žiadosť o tábor pre ${data.camperName} bola prijatá. Ozveme sa!`)
+    alert(`Žiadosť o tábor bola prijatá. Ozveme sa!`)
   }
 
   return (
@@ -68,24 +108,80 @@ export default function SummerCamp(){
 
         <div className="row">
           <div>
-            <label>Meno účastníka</label>
-            <input className="input" disabled={locked} {...register('camperName', { required: 'Meno účastníka je povinné' })} />
-            {errors.camperName && <div className="error">{errors.camperName.message}</div>}
-          </div>
-          <div>
-            <label>Dátum narodenia</label>
-            <input type="date" className="input" disabled={locked} {...register('camperDob', { 
-              required: 'Dátum narodenia je povinný',
-              validate: (value) => {
-                const dob = new Date(value)
-                const today = new Date()
-                const age = today.getFullYear() - dob.getFullYear() - (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0)
-                return age >= 4 || 'Vek účastníka musí byť aspoň 4 roky'
-              }
-            })} />
-            {errors.camperDob && <div className="error">{errors.camperDob.message as string}</div>}
+            <label>Telefón rodiča</label>
+            <input type="tel" className="input" disabled={locked} {...register('parentPhone', { required: 'Telefón je povinný' })} />
+            {errors.parentPhone && <div className="error">{errors.parentPhone.message}</div>}
           </div>
         </div>
+
+        <div className="row">
+          <div>
+            <label>Počet detí</label>
+            <select
+              className="select"
+              disabled={locked}
+              {...register('childrenCount', { required: true, valueAsNumber: true, min: 1, max: 5 })}
+              onChange={(e) => {
+                const n = Math.max(1, Math.min(5, parseInt(e.target.value || '1', 10)))
+                const current = watch('children') || []
+                const next = Array.from({ length: n }, (_, i) => current[i] || { name: '', dob: '', size: '' })
+                setValue('childrenCount', n)
+                replace(next)
+              }}
+            >
+              {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {fields.map((field, idx) => (
+          <div className="row" key={field.id}>
+            <div>
+              <label>Meno účastníka {idx + 1}</label>
+              <input
+                className="input"
+                disabled={locked}
+                {...register(`children.${idx}.name` as const, { required: 'Meno účastníka je povinné' })}
+              />
+              {errors.children?.[idx]?.name && <div className="error">{(errors.children[idx] as any)?.name?.message}</div>}
+            </div>
+            <div>
+              <label>Dátum narodenia {idx + 1}</label>
+              <input
+                type="date"
+                className="input"
+                disabled={locked}
+                {...register(`children.${idx}.dob` as const, {
+                  required: 'Dátum narodenia je povinný',
+                  validate: (value) => {
+                    const dob = new Date(value)
+                    const today = new Date()
+                    const age = today.getFullYear() - dob.getFullYear() - (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0)
+                    return age >= 4 || 'Vek účastníka musí byť aspoň 4 roky'
+                  }
+                })}
+              />
+              {errors.children?.[idx]?.dob && <div className="error">{(errors.children[idx] as any)?.dob?.message}</div>}
+            </div>
+            <div>
+              <label>Veľkosť trička {idx + 1}</label>
+              <select
+                className="select"
+                disabled={locked}
+                {...register(`children.${idx}.size` as const, { required: 'Zvoľte veľkosť' })}
+              >
+                <option value="">Vyberte veľkosť</option>
+                <option>110</option>
+                <option>122</option>
+                <option>134</option>
+                <option>146</option>
+                <option>158</option>
+                <option>Damske S (164 cm)</option>
+              </select>
+              {errors.children?.[idx]?.size && <div className="error">{(errors.children[idx] as any)?.size?.message}</div>}
+            </div>
+          </div>
+        ))}
 
         <div className="row">
           <div>
@@ -106,9 +202,37 @@ export default function SummerCamp(){
           </div>
         </div>
 
-    <button className="button" disabled={locked}>{isSubmitting ? 'Odosielanie…' : (isSubmitSuccessful ? 'Odoslané' : 'Požiadať o miesto v tábore')}</button>
+        <div>
+          <label className="checkbox">
+            <input type="checkbox" disabled={locked} {...register('gdpr', { required: 'Pred odoslaním musíte súhlasiť so spracúvaním osobných údajov' })} />
+            <span>
+              Súhlasím so spracúvaním osobných údajov (<button type="button" className="link-button" onClick={() => setShowGdpr(true)}>zobraziť úplné znenie</button>)
+            </span>
+          </label>
+          {errors.gdpr && <div className="error">{errors.gdpr.message as string}</div>}
+        </div>
+
+        <button className="button" disabled={locked}>{isSubmitting ? 'Odosielanie…' : (isSubmitSuccessful ? 'Odoslané' : 'Požiadať o miesto v tábore')}</button>
         {isSubmitSuccessful && <div className="helper">Odpovieme do 1 pracovného dňa.</div>}
       </form>
+      {showGdpr && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="GDPR súhlas">
+          <div className="modal-panel">
+            <div className="modal-header">
+              <strong>Spracúvanie osobných údajov</strong>
+              <button className="modal-close" aria-label="Zavrieť" onClick={() => setShowGdpr(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Súhlasím so spracúvaním osobných údajov podľa zákona č.18/2018 o ochrane osobných údajov na účely registrácie do plaveckých kurzov a sústredení, fakturácie a účtovníctva po dobu 10 rokov v rozsahu meno a priezvisko dieťaťa, dátum narodenia dieťaťa, meno a priezvisko rodiča, adresa, e-mail, telefón. Tieto údaje budú spracované výlučne pre potreby plaveckého klubu a nebudú poskytnuté ďalšej strane.
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button className="button secondary" onClick={() => setShowGdpr(false)}>Zavrieť</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
