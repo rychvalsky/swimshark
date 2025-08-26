@@ -1,10 +1,53 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+type Turnus = { id: number; position: number; label: string; start_date: string | null; end_date: string | null; is_full?: boolean }
 
 export default function SummerCampInfo(){
+  const [turnuses, setTurnuses] = useState<Turnus[]>([])
+
+  useEffect(() => {
+    supabase.from('camp_turnuses').select('*').order('position', { ascending: true }).then(({ data }) => {
+      const list = (data as any[] || []).map((r, idx) => ({
+        id: r.id ?? idx,
+        position: r.position ?? (idx + 1),
+        label: r.label ?? `${idx + 1}. turnus`,
+        start_date: r.start_date ?? null,
+        end_date: r.end_date ?? null,
+        is_full: r.is_full ?? false,
+      }))
+      setTurnuses(list)
+    })
+  }, [])
+
   return (
     <div className="section">
       <h1>Letný tábor SwimShark</h1>
       <p className="muted">Týždeň plný pohybu, vody a zábavy v bezpečnom prostredí so skúsenými trénermi.</p>
+
+      {/* Dates first */}
+      <div className="card">
+        <h2>Turnusy a dátumy</h2>
+        {turnuses.length === 0 ? (
+          <p className="muted">Dátumy budú zverejnené čoskoro.</p>
+        ) : (
+          <ul>
+            {turnuses.map(t => (
+              <li key={t.id}>
+                {t.label} — {formatDate(t.start_date)} – {formatDate(t.end_date)} {t.is_full ? <strong>(OBSADENÉ)</strong> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Price immediately below */}
+      <div className="card">
+        <h2>Cena</h2>
+        <p>Cena tábora je <strong>179 €</strong>. (možnosť financovať aj prostredníctvom rekreačného poukazu)</p>
+        <p><em>akcia DUO 5 eur zľava (súrodenec zľava)</em></p>
+      </div>
 
       <div className="card">
         <h2>Filozofia tábora</h2>
@@ -26,23 +69,7 @@ export default function SummerCampInfo(){
         </p>
       </div>
 
-      <div className="card">
-        <h2>Cena</h2>
-        <p>Cena tábora je <strong>179 €</strong>. (možnosť financovať aj prostredníctvom rekreačného poukazu)</p>
-        <p><em>akcia DUO 5 eur zľava (súrodenec zľava)</em></p>
-      </div>
-
-      <div className="card">
-        <h2>Turnusy a dátumy</h2>
-        <ul>
-          <li>1. turnus — 30.6 – 4.7.2025</li>
-          <li>2. turnus — 7.7 – 11.7.2025</li>
-          <li>3. turnus — 14.7 – 18.7.2025</li>
-          <li>4. turnus — 21.7 – 25.7.2025</li>
-          <li><strong>5. turnus OBSADENÉ</strong> — 28.7 – 1.8.2025</li>
-          <li><strong>6. turnus OBSADENÉ</strong> — 4.8 – 8.8.2025</li>
-        </ul>
-      </div>
+      
 
       <div className="card">
         <h2>Miesto a čas</h2>
@@ -76,4 +103,14 @@ export default function SummerCampInfo(){
       </div>
     </div>
   )
+}
+
+function formatDate(iso: string | null){
+  if (!iso) return ''
+  try{
+    const d = new Date(iso)
+    return d.toLocaleDateString()
+  } catch {
+    return iso
+  }
 }

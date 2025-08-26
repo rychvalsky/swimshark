@@ -1,5 +1,5 @@
 import { useForm, useFieldArray } from 'react-hook-form'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type CampForm = {
@@ -24,6 +24,14 @@ export default function SummerCamp(){
   const { fields, replace } = useFieldArray({ control, name: 'children' })
   const locked = isSubmitting || isSubmitSuccessful
   const [showGdpr, setShowGdpr] = useState(false)
+  const [turnuses, setTurnuses] = useState<{ label: string; start_date: string | null; end_date: string | null; is_full?: boolean }[]>([])
+
+  useEffect(() => {
+    supabase.from('camp_turnuses').select('*').order('position', { ascending: true }).then(({ data }) => {
+      const list = (data as any[] || []).map(r => ({ label: r.label ?? 'Turnus', start_date: r.start_date ?? null, end_date: r.end_date ?? null, is_full: r.is_full ?? false }))
+      setTurnuses(list)
+    })
+  }, [])
 
   const onSubmit = async (data: CampForm) => {
   const campers = (data.children || [])
@@ -185,14 +193,14 @@ export default function SummerCamp(){
 
         <div className="row">
           <div>
-            <label>Preferovaný týždeň</label>
-      <select className="select" disabled={locked} {...register('week', { required: 'Zvoľte týždeň' })}>
-              <option value="">Vyberte týždeň</option>
-              <option>9.–13. jún</option>
-              <option>16.–20. jún</option>
-              <option>23.–27. jún</option>
-              <option>7.–11. júl</option>
-              <option>14.–18. júl</option>
+            <label>Preferovaný turnus</label>
+            <select className="select" disabled={locked} {...register('week', { required: 'Zvoľte turnus' })}>
+              <option value="">Vyberte turnus</option>
+              {turnuses.map((t, i) => (
+                <option key={i} value={`${t.label} (${formatDate(t.start_date)} – ${formatDate(t.end_date)})`} disabled={t.is_full}>
+                  {t.label} — {formatDate(t.start_date)} – {formatDate(t.end_date)} {t.is_full ? '(obsadené)' : ''}
+                </option>
+              ))}
             </select>
             {errors.week && <div className="error">{errors.week.message}</div>}
           </div>
@@ -235,4 +243,14 @@ export default function SummerCamp(){
       )}
     </div>
   )
+}
+
+function formatDate(iso: string | null){
+  if (!iso) return ''
+  try{
+    const d = new Date(iso)
+    return d.toLocaleDateString()
+  } catch {
+    return iso as any
+  }
 }

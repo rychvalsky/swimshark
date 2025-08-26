@@ -49,6 +49,12 @@ export default function Admin(){
   const [ltLoading, setLtLoading] = useState<boolean>(false)
   const [ltSaving, setLtSaving] = useState<boolean>(false)
   const [ltMsg, setLtMsg] = useState<string | null>(null)
+  // Camp turnuses editor state
+  type Turnus = { id?: number; position: number; label: string; start_date: string | null; end_date: string | null; is_full?: boolean }
+  const [turnuses, setTurnuses] = useState<Turnus[]>([])
+  const [tuLoading, setTuLoading] = useState<boolean>(false)
+  const [tuSaving, setTuSaving] = useState<boolean>(false)
+  const [tuMsg, setTuMsg] = useState<string | null>(null)
 
   const load = async (which: Tab | 'both' = 'both') => {
     setLoading(true)
@@ -79,6 +85,7 @@ export default function Admin(){
 
   useEffect(() => { load('both') }, [])
   useEffect(() => { loadLessonTerms() }, [])
+  useEffect(() => { loadCampTurnuses() }, [])
 
   async function loadLessonTerms(){
     try{
@@ -120,6 +127,68 @@ export default function Admin(){
       setLtMsg(e?.message || 'Ukladanie zlyhalo')
     } finally {
       setLtSaving(false)
+    }
+  }
+
+  async function loadCampTurnuses(){
+    try{
+      setTuLoading(true)
+      setTuMsg(null)
+      const { data, error } = await supabase.from('camp_turnuses').select('*').order('position', { ascending: true })
+      if (error) throw error
+      const list = (data as any[] || []).map((r, idx) => ({
+        id: r.id,
+        position: r.position ?? (idx + 1),
+        label: r.label ?? `${idx + 1}. turnus`,
+        start_date: r.start_date ?? null,
+        end_date: r.end_date ?? null,
+        is_full: r.is_full ?? false,
+      }))
+      setTurnuses(list)
+      if (list.length === 0){
+        // Seed with 3 empty rows for convenience
+        setTurnuses([
+          { position: 1, label: '1. turnus', start_date: null, end_date: null, is_full: false },
+          { position: 2, label: '2. turnus', start_date: null, end_date: null, is_full: false },
+          { position: 3, label: '3. turnus', start_date: null, end_date: null, is_full: false },
+        ])
+      }
+    } catch(e:any){
+      const msg = e?.message || 'Nepodarilo sa načítať turnusy'
+      setTuMsg(msg)
+    } finally {
+      setTuLoading(false)
+    }
+  }
+
+  async function saveCampTurnuses(){
+    try{
+      setTuSaving(true)
+      setTuMsg(null)
+      const payload = turnuses.map(t => ({
+        id: t.id,
+        position: t.position,
+        label: t.label,
+        start_date: t.start_date || null,
+        end_date: t.end_date || null,
+        is_full: !!t.is_full,
+        updated_at: new Date().toISOString(),
+      }))
+      let { error } = await supabase.from('camp_turnuses').upsert(payload, { onConflict: 'id' })
+      if (error){
+        const m = (error.message || '').toLowerCase()
+        if (m.includes('camp_turnuses')){
+          setTuMsg('Uloženie zlyhalo: Vytvorte tabuľku camp_turnuses (stĺpce: id, position, label, start_date, end_date, is_full, updated_at)')
+          return
+        }
+        throw error
+      }
+      setTuMsg('Uložené')
+      await loadCampTurnuses()
+    } catch(e:any){
+      setTuMsg(e?.message || 'Ukladanie zlyhalo')
+    } finally {
+      setTuSaving(false)
     }
   }
 
@@ -190,6 +259,66 @@ export default function Admin(){
           <button className="button" onClick={saveLessonTerms} disabled={ltLoading || ltSaving}>{ltSaving ? 'Ukladám…' : 'Uložiť'}</button>
         </div>
         {ltMsg && <div className="helper">{ltMsg}</div>}
+      </div>
+
+      <div className="card" style={{ display:'grid', gap:12 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <strong>Turnusy letného tábora</strong>
+          <div style={{ display:'flex', gap:8 }}>
+            <button className="button secondary" onClick={loadCampTurnuses} disabled={tuLoading || tuSaving}>{tuLoading ? 'Načítavam…' : 'Načítať'}</button>
+            <button className="button" onClick={saveCampTurnuses} disabled={tuLoading || tuSaving}>{tuSaving ? 'Ukladám…' : 'Uložiť'}</button>
+          </div>
+        </div>
+        {tuMsg && <div className="helper">{tuMsg}</div>}
+        <div style={{ overflowX:'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Názov</th>
+                <th>Od</th>
+                <th>Do</th>
+                <th>Obsadené</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {turnuses.map((t, idx) => (
+                <tr key={t.id ?? idx}>
+                  <td>{t.position}</td>
+                  <td>
+                    <input className="input" value={t.label}
+                           onChange={e => setTurnuses(v => v.map((x,i) => i===idx ? { ...x, label: e.target.value } : x))} />
+                  </td>
+                  <td>
+                    <input type="date" className="input" value={t.start_date ?? ''}
+                           onChange={e => setTurnuses(v => v.map((x,i) => i===idx ? { ...x, start_date: e.target.value || null } : x))} />
+                  </td>
+                  <td>
+                    <input type="date" className="input" value={t.end_date ?? ''}
+                           onChange={e => setTurnuses(v => v.map((x,i) => i===idx ? { ...x, end_date: e.target.value || null } : x))} />
+                  </td>
+                  <td>
+                    <label className="checkbox" style={{ userSelect:'none' }}>
+                      <input type="checkbox" checked={!!t.is_full}
+                             onChange={e => setTurnuses(v => v.map((x,i) => i===idx ? { ...x, is_full: e.target.checked } : x))} />
+                      <span>Obsadené</span>
+                    </label>
+                  </td>
+                  <td>
+                    <button className="button secondary" onClick={() => setTurnuses(v => v.filter((_,i) => i!==idx))}>Zmazať</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <button className="button secondary" onClick={() => setTurnuses(v => {
+            const pos = (v[v.length-1]?.position ?? 0) + 1
+            return [...v, { position: pos, label: `${pos}. turnus`, start_date: null, end_date: null, is_full: false }]
+          })}>Pridať turnus</button>
+        </div>
       </div>
 
       <div className="card" style={{ overflowX:'auto' }}>
