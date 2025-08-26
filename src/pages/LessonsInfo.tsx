@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabase'
 export default function LessonsInfo(){
   const [start, setStart] = useState<string | null>(null)
   const [end, setEnd] = useState<string | null>(null)
+  const [course, setCourse] = useState<string>('Jesenný kurz')
 
   useEffect(() => {
     supabase.from('lesson_terms').select('*').eq('id', 1).maybeSingle().then(({ data }) => {
-      if (data){ setStart(data.start_date || null); setEnd(data.end_date || null) }
+      if (data){ setStart(data.start_date || null); setEnd(data.end_date || null); setCourse((data as any).course_name || 'Jesenný kurz') }
     })
   }, [])
 
@@ -17,7 +18,7 @@ export default function LessonsInfo(){
       <p className="muted">Objavte naše skupinové a individuálne lekcie pre deti rôznych úrovní.</p>
 
       <div className="card">
-        <h2>Jesenný kurz</h2>
+        <h2>{course}</h2>
         <p>
           <strong>{start || '22.9.2025'} – {end || '23.1.2026'}</strong>
           {' '}<span className="muted">(počas sviatkov a prázdnin sa nepláva)</span>

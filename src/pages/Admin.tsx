@@ -45,6 +45,7 @@ export default function Admin(){
   // Lesson terms editor state
   const [ltStart, setLtStart] = useState<string>('')
   const [ltEnd, setLtEnd] = useState<string>('')
+  const [ltCourse, setLtCourse] = useState<string>('Jesenný kurz')
   const [ltLoading, setLtLoading] = useState<boolean>(false)
   const [ltSaving, setLtSaving] = useState<boolean>(false)
   const [ltMsg, setLtMsg] = useState<string | null>(null)
@@ -88,6 +89,7 @@ export default function Admin(){
       if (data){
         setLtStart(data.start_date ?? '')
         setLtEnd(data.end_date ?? '')
+  setLtCourse((data as any).course_name ?? 'Jesenný kurz')
       }
     } catch(e:any){
       setLtMsg(e?.message || 'Nepodarilo sa načítať termíny')
@@ -100,9 +102,19 @@ export default function Admin(){
     try{
       setLtSaving(true)
       setLtMsg(null)
-      const payload = { id: 1, start_date: ltStart || null, end_date: ltEnd || null, updated_at: new Date().toISOString() }
-      const { error } = await supabase.from('lesson_terms').upsert(payload, { onConflict: 'id' })
-      if (error) throw error
+      const payload: any = { id: 1, start_date: ltStart || null, end_date: ltEnd || null, course_name: ltCourse || null, updated_at: new Date().toISOString() }
+      let { error } = await supabase.from('lesson_terms').upsert(payload, { onConflict: 'id' })
+      if (error){
+        const msg = (error.message || '').toLowerCase()
+        if (msg.includes('course_name')){
+          // Retry without course_name to keep dates working and hint migration
+          const retry = await supabase.from('lesson_terms').upsert({ id: 1, start_date: ltStart || null, end_date: ltEnd || null, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+          if (retry.error){ throw retry.error }
+          setLtMsg('Uložené (poznámka: pridajte stĺpec course_name do lesson_terms)')
+          return
+        }
+        throw error
+      }
       setLtMsg('Uložené')
     } catch(e:any){
       setLtMsg(e?.message || 'Ukladanie zlyhalo')
@@ -158,6 +170,14 @@ export default function Admin(){
       {error && <div className="card" style={{ borderColor:'#fecaca', color:'#991b1b' }}>Chyba: {error}</div>}
 
       <div className="card" style={{ display:'flex', gap:12, alignItems:'flex-end', flexWrap:'wrap' }}>
+        <div style={{ display:'grid', gap:8 }}>
+          <label style={{ fontWeight:600 }}>Názov kurzu</label>
+          <select className="select" value={ltCourse} onChange={e => setLtCourse(e.target.value)} disabled={ltLoading || ltSaving}>
+            <option>Jesenný kurz</option>
+            <option>Jarný kurz</option>
+            <option>Zimný kurz</option>
+          </select>
+        </div>
         <div style={{ display:'grid', gap:8 }}>
           <label style={{ fontWeight:600 }}>Termíny lekcií (od – do)</label>
           <div style={{ display:'flex', gap:8 }}>
