@@ -6,6 +6,7 @@ type Turnus = { id: number; position: number; label: string; start_date: string 
 
 export default function SummerCampInfo(){
   const [turnuses, setTurnuses] = useState<Turnus[]>([])
+  const [priceEur, setPriceEur] = useState<number | null>(null)
 
   useEffect(() => {
     supabase.from('camp_turnuses').select('*').order('position', { ascending: true }).then(({ data }) => {
@@ -18,6 +19,11 @@ export default function SummerCampInfo(){
         is_full: r.is_full ?? false,
       }))
       setTurnuses(list)
+    })
+    supabase.from('camp_settings').select('*').eq('id', 1).maybeSingle().then(({ data }) => {
+      if (data && typeof (data as any).price_eur === 'number'){
+        setPriceEur((data as any).price_eur)
+      }
     })
   }, [])
 
@@ -51,7 +57,10 @@ export default function SummerCampInfo(){
       {/* Price immediately below */}
       <div className="card">
         <h2>Cena</h2>
-        <p>Cena tábora je <strong>179 €</strong>. (možnosť financovať aj prostredníctvom rekreačného poukazu)</p>
+        <p>
+          Cena tábora je <strong>{priceEur != null ? `${priceEur} €` : '179 €'}</strong>.
+          (možnosť financovať aj prostredníctvom rekreačného poukazu)
+        </p>
         <p><em>akcia DUO 5 eur zľava (súrodenec zľava)</em></p>
       </div>
 

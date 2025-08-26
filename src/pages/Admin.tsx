@@ -56,6 +56,12 @@ export default function Admin(){
   const [tuSaving, setTuSaving] = useState<boolean>(false)
   const [tuMsg, setTuMsg] = useState<string | null>(null)
 
+  // Camp settings (price)
+  const [csPrice, setCsPrice] = useState<string>('179')
+  const [csLoading, setCsLoading] = useState<boolean>(false)
+  const [csSaving, setCsSaving] = useState<boolean>(false)
+  const [csMsg, setCsMsg] = useState<string | null>(null)
+
   const load = async (which: Tab | 'both' = 'both') => {
     setLoading(true)
     setError(null)
@@ -86,6 +92,7 @@ export default function Admin(){
   useEffect(() => { load('both') }, [])
   useEffect(() => { loadLessonTerms() }, [])
   useEffect(() => { loadCampTurnuses() }, [])
+  useEffect(() => { loadCampSettings() }, [])
 
   async function loadLessonTerms(){
     try{
@@ -192,6 +199,47 @@ export default function Admin(){
     }
   }
 
+  async function loadCampSettings(){
+    try{
+      setCsLoading(true)
+      setCsMsg(null)
+      const { data, error } = await supabase.from('camp_settings').select('*').eq('id', 1).maybeSingle()
+      if (error) throw error
+      if (data){
+        const price = (data as any).price_eur
+        setCsPrice(price != null ? String(price) : '179')
+      }
+    } catch(e:any){
+      // Silently ignore if table missing, but show hint if needed via manual action
+      setCsMsg(e?.message || 'Nepodarilo sa načítať nastavenia tábora')
+    } finally {
+      setCsLoading(false)
+    }
+  }
+
+  async function saveCampSettings(){
+    try{
+      setCsSaving(true)
+      setCsMsg(null)
+      const priceNumber = csPrice ? Number(csPrice) : null
+      const payload: any = { id: 1, price_eur: priceNumber, updated_at: new Date().toISOString() }
+      const { error } = await supabase.from('camp_settings').upsert(payload, { onConflict: 'id' })
+      if (error){
+        const m = (error.message || '').toLowerCase()
+        if (m.includes('camp_settings')){
+          setCsMsg('Uloženie zlyhalo: Vytvorte tabuľku camp_settings (stĺpce: id, price_eur, updated_at)')
+          return
+        }
+        throw error
+      }
+      setCsMsg('Uložené')
+    } catch(e:any){
+      setCsMsg(e?.message || 'Ukladanie zlyhalo')
+    } finally {
+      setCsSaving(false)
+    }
+  }
+
   const visible = tab === 'lessons' ? lessons : camp
 
   const exportCsv = () => {
@@ -259,6 +307,21 @@ export default function Admin(){
           <button className="button" onClick={saveLessonTerms} disabled={ltLoading || ltSaving}>{ltSaving ? 'Ukladám…' : 'Uložiť'}</button>
         </div>
         {ltMsg && <div className="helper">{ltMsg}</div>}
+      </div>
+
+      <div className="card" style={{ display:'grid', gap:12 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <strong>Nastavenia tábora</strong>
+          <div style={{ display:'flex', gap:8 }}>
+            <button className="button secondary" onClick={loadCampSettings} disabled={csLoading || csSaving}>{csLoading ? 'Načítavam…' : 'Načítať'}</button>
+            <button className="button" onClick={saveCampSettings} disabled={csLoading || csSaving}>{csSaving ? 'Ukladám…' : 'Uložiť'}</button>
+          </div>
+        </div>
+        {csMsg && <div className="helper">{csMsg}</div>}
+        <div style={{ display:'grid', gap:8, maxWidth: 280 }}>
+          <label style={{ fontWeight:600 }}>Cena letného tábora (EUR)</label>
+          <input className="input" type="number" min={0} step={1} value={csPrice} onChange={e => setCsPrice(e.target.value)} disabled={csLoading || csSaving} />
+        </div>
       </div>
 
       <div className="card" style={{ display:'grid', gap:12 }}>

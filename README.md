@@ -196,6 +196,29 @@ on conflict do nothing;
 
 Note: For production, replace anon policies with stricter ones or manage turnuses through a protected API. The frontend reads `camp_turnuses` to show dates on the Summer Camp page and uses them to populate the form's turnus selector. The Admin page can upsert rows (label, od, do, obsadené).
 
+### New: summer camp settings (price)
+
+Create a small settings table to control camp price from Admin:
+
+```sql
+create table if not exists camp_settings (
+	id int primary key,
+	price_eur numeric(10,2),
+	updated_at timestamptz default now()
+);
+
+alter table camp_settings enable row level security;
+
+-- Dev policies (tighten for prod)
+create policy if not exists "anon select camp_settings" on camp_settings for select to anon using (true);
+create policy if not exists "anon upsert camp_settings" on camp_settings for insert to anon with check (true);
+create policy if not exists "anon update camp_settings" on camp_settings for update to anon using (true) with check (true);
+
+-- Seed a single row used by the app
+insert into camp_settings (id, price_eur) values (1, 179)
+on conflict (id) do nothing;
+```
+
 ### Protecting `/admin` with Supabase Auth
 - The app uses Supabase Email+Password sign-in.
 - Create a user in Supabase Authentication > Users.
