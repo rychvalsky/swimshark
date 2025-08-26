@@ -226,8 +226,14 @@ export default function Admin(){
       const { error } = await supabase.from('camp_settings').upsert(payload, { onConflict: 'id' })
       if (error){
         const m = (error.message || '').toLowerCase()
-        if (m.includes('camp_settings')){
-          setCsMsg('Uloženie zlyhalo: Vytvorte tabuľku camp_settings (stĺpce: id, price_eur, updated_at)')
+        // Detect common RLS/permission problems and provide helpful hints
+        if (m.includes('permission denied') || m.includes('row level security') || m.includes('no insert policy') || m.includes('violates row-level security')){
+          setCsMsg('Uloženie zlyhalo: povoľte RLS politiky INSERT/UPDATE pre camp_settings (pozri README – camp_settings policies).')
+          return
+        }
+        // Table missing (less likely if you already created it)
+        if (m.includes('relation') && m.includes('camp_settings')){
+          setCsMsg('Uloženie zlyhalo: Vytvorte tabuľku camp_settings (stĺpce: id, price_eur, updated_at) – viď README.')
           return
         }
         throw error
