@@ -3,8 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 const LABELS: Record<string, string> = {
   'o-nas': 'O nás',
   'lekcie': 'Lekcie',
-  'prihlasenie': 'Prihlásenie',
   'letny-tabor': 'Letný tábor',
+  'prihlasenie': 'Prihlásenie',
   'kontakt': 'Kontakt',
   'admin': 'Administrácia',
 }
