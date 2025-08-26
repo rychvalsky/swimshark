@@ -154,6 +154,48 @@ create policy "Allow upserts for anon" on lesson_terms for insert to anon with c
 create policy "Allow updates for anon" on lesson_terms for update to anon using (true) with check (true);
 ```
 
+### New: editable course name and camp turnuses
+
+Add course name to `lesson_terms` (used on Home/Lessons and editable in Admin):
+
+```sql
+alter table lesson_terms add column if not exists course_name text;
+
+-- Optional: set a default value
+update lesson_terms set course_name = coalesce(course_name, 'Jesenný kurz') where id = 1;
+```
+
+Create table for summer camp turnuses (each row is one date slot with optional full flag):
+
+```sql
+create table if not exists camp_turnuses (
+	id bigserial primary key,
+	position int not null,
+	label text not null,
+	start_date date,
+	end_date date,
+	is_full boolean not null default false,
+	updated_at timestamptz default now()
+);
+
+alter table camp_turnuses enable row level security;
+
+-- During development, allow public read and upsert from the anon key
+create policy if not exists "anon select camp_turnuses" on camp_turnuses for select to anon using (true);
+create policy if not exists "anon insert camp_turnuses" on camp_turnuses for insert to anon with check (true);
+create policy if not exists "anon update camp_turnuses" on camp_turnuses for update to anon using (true) with check (true);
+
+-- Optional seed
+insert into camp_turnuses (position, label, start_date, end_date)
+values
+	(1, '1. turnus', '2025-06-30', '2025-07-04'),
+	(2, '2. turnus', '2025-07-07', '2025-07-11'),
+	(3, '3. turnus', '2025-07-14', '2025-07-18')
+on conflict do nothing;
+```
+
+Note: For production, replace anon policies with stricter ones or manage turnuses through a protected API. The frontend reads `camp_turnuses` to show dates on the Summer Camp page and uses them to populate the form's turnus selector. The Admin page can upsert rows (label, od, do, obsadené).
+
 ### Protecting `/admin` with Supabase Auth
 - The app uses Supabase Email+Password sign-in.
 - Create a user in Supabase Authentication > Users.

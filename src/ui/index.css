@@ -53,6 +53,10 @@ main.container{ flex:1; padding: 32px 16px 48px; }
 .card-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:16px; margin-top:24px; }
 .card{ background: var(--panel); border:1px solid var(--border); border-radius: var(--radius); padding:16px; box-shadow: 0 4px 20px rgba(2,6,23,0.06); }
 
+/* Decorative wave divider */
+.wave-divider{ margin: 16px -16px; }
+.wave-divider img{ width:100%; height:auto; display:block; }
+
 /* Tables */
 .table{ width:100%; border-collapse: separate; border-spacing: 0; }
 .table thead th{ text-align: left; color: var(--muted); font-weight: 600; padding:10px 12px; border-bottom:1px solid var(--border); background: #f8fafc; }

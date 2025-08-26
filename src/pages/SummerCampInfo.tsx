@@ -35,7 +35,13 @@ export default function SummerCampInfo(){
           <ul>
             {turnuses.map(t => (
               <li key={t.id}>
-                {t.label} — {formatDate(t.start_date)} – {formatDate(t.end_date)} {t.is_full ? <strong>(OBSADENÉ)</strong> : null}
+                <span>{t.label} — </span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                  {formatDate(t.start_date)} – {formatDate(t.end_date)}
+                </span>
+                {t.is_full ? (
+                  <span style={{ color:'#dc2626', fontWeight:700, marginLeft: 8 }}>(obsadené)</span>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -47,6 +53,17 @@ export default function SummerCampInfo(){
         <h2>Cena</h2>
         <p>Cena tábora je <strong>179 €</strong>. (možnosť financovať aj prostredníctvom rekreačného poukazu)</p>
         <p><em>akcia DUO 5 eur zľava (súrodenec zľava)</em></p>
+      </div>
+
+      {/* Standalone CTA link after price card with generous spacing and centered */}
+      <div style={{ marginTop: 24, marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
+        <Link
+          className="button"
+          to="/letny-tabor/prihlasenie"
+          style={{ fontSize: '1.15rem', padding: '12px 28px', minWidth: 320, textAlign: 'center' }}
+        >
+          Prejsť na prihlášku
+        </Link>
       </div>
 
       <div className="card">

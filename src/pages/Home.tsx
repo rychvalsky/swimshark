@@ -14,7 +14,7 @@ export default function Home(){
   }, [])
   return (
     <div className="home">
-      <section className="hero">
+  <section className="hero">
         <div>
           <h1>Sebavedomí plavci začínajú u nás</h1>
           <p>Od prvých špliechov až po pretekárske štýly – SwimShark buduje istotu vo vode a techniku pre všetky veky v bezpečnom a zábavnom prostredí.</p>
@@ -26,7 +26,7 @@ export default function Home(){
             {course}: <strong>{start || '22.9.2025'} – {end || '23.1.2026'}</strong> <span className="muted">(počas sviatkov a prázdnin sa nepláva)</span>
           </p>
         </div>
-        <div className="card">
+        <div className="card" style={{ position:'relative', overflow:'hidden' }}>
           <h3>Prečo SwimShark?</h3>
           <ul>
             <li>Certifikovaní, starostliví inštruktori</li>
@@ -34,8 +34,13 @@ export default function Home(){
             <li>Flexibilné termíny</li>
             <li>Moderné, teplé kryté bazény</li>
           </ul>
+          <img src="/pictures/illustrations/swimmer.svg" alt="Ilustrácia plavca" style={{ position:'absolute', right: -8, bottom: -8, width: 160, opacity: .9, pointerEvents:'none' }} />
         </div>
       </section>
+
+      <div className="wave-divider" aria-hidden="true">
+        <img src="/pictures/illustrations/waves.svg" alt="" />
+      </div>
 
       <section className="section">
         <h2>Programy</h2>
