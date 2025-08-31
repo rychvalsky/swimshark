@@ -219,6 +219,37 @@ insert into camp_settings (id, price_eur) values (1, 179)
 on conflict (id) do nothing;
 ```
 
+### New: lesson prices (per-course, 2×/1× weekly)
+
+Admin can edit prices for each course; the Lessons page reads them dynamically with fallbacks:
+
+```sql
+create table if not exists lesson_prices (
+	id bigserial primary key,
+	course_key text unique not null, -- e.g. kids_3_4, group, kondicne, 11plus
+	course_label text not null,
+	price_2x numeric(10,2),
+	price_1x numeric(10,2),
+	updated_at timestamptz default now()
+);
+
+alter table lesson_prices enable row level security;
+
+-- Dev policies (tighten for prod)
+create policy if not exists "anon select lesson_prices" on lesson_prices for select to anon using (true);
+create policy if not exists "anon insert lesson_prices" on lesson_prices for insert to anon with check (true);
+create policy if not exists "anon update lesson_prices" on lesson_prices for update to anon using (true) with check (true);
+
+-- Optional seed with current defaults
+insert into lesson_prices (course_key, course_label, price_2x, price_1x)
+values
+	('kids_3_4', 'Kurz pre 3 – 4 ročné deti', 415, 220),
+	('group', 'Skupinové plávanie', 375, 195),
+	('kondicne', 'Kondičné plávanie', 345, 185),
+	('11plus', 'Plávanie 11+', 345, 185)
+on conflict (course_key) do update set course_label = excluded.course_label;
+```
+
 ### Protecting `/admin` with Supabase Auth
 - The app uses Supabase Email+Password sign-in.
 - Create a user in Supabase Authentication > Users.

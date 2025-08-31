@@ -62,6 +62,19 @@ export default function Admin(){
   const [csSaving, setCsSaving] = useState<boolean>(false)
   const [csMsg, setCsMsg] = useState<string | null>(null)
 
+  // Lesson prices (per course: 2x/1x weekly)
+  type LessonPrice = { id?: number; course_key: string; course_label: string; price_2x?: number | null; price_1x?: number | null }
+  const DEFAULT_LESSON_PRICES: LessonPrice[] = [
+    { course_key: 'kids_3_4', course_label: 'Kurz pre 3 – 4 ročné deti', price_2x: 415, price_1x: 220 },
+    { course_key: 'group', course_label: 'Skupinové plávanie', price_2x: 375, price_1x: 195 },
+    { course_key: 'kondicne', course_label: 'Kondičné plávanie', price_2x: 345, price_1x: 185 },
+    { course_key: '11plus', course_label: 'Plávanie 11+', price_2x: 345, price_1x: 185 },
+  ]
+  const [lpRows, setLpRows] = useState<LessonPrice[]>(DEFAULT_LESSON_PRICES)
+  const [lpLoading, setLpLoading] = useState<boolean>(false)
+  const [lpSaving, setLpSaving] = useState<boolean>(false)
+  const [lpMsg, setLpMsg] = useState<string | null>(null)
+
   const load = async (which: Tab | 'both' = 'both') => {
     setLoading(true)
     setError(null)
@@ -93,6 +106,7 @@ export default function Admin(){
   useEffect(() => { loadLessonTerms() }, [])
   useEffect(() => { loadCampTurnuses() }, [])
   useEffect(() => { loadCampSettings() }, [])
+  useEffect(() => { loadLessonPrices() }, [])
 
   async function loadLessonTerms(){
     try{
@@ -246,6 +260,69 @@ export default function Admin(){
     }
   }
 
+  async function loadLessonPrices(){
+    try{
+      setLpLoading(true)
+      setLpMsg(null)
+      const { data, error } = await supabase.from('lesson_prices').select('*').order('course_label', { ascending: true })
+      if (error) throw error
+      const rows = (data as any[] | null) ?? []
+      if (rows.length === 0){
+        setLpRows(DEFAULT_LESSON_PRICES)
+        return
+      }
+      const mapped: LessonPrice[] = rows.map(r => ({
+        id: r.id,
+        course_key: r.course_key,
+        course_label: r.course_label,
+        price_2x: r.price_2x == null ? null : Number(r.price_2x),
+        price_1x: r.price_1x == null ? null : Number(r.price_1x),
+      }))
+      // Keep only known courses order; append unknowns at end
+      const order = DEFAULT_LESSON_PRICES.map(r => r.course_key)
+      mapped.sort((a,b) => order.indexOf(a.course_key) - order.indexOf(b.course_key))
+      setLpRows(mapped)
+    } catch(e:any){
+      setLpMsg(e?.message || 'Nepodarilo sa načítať ceny lekcií')
+    } finally {
+      setLpLoading(false)
+    }
+  }
+
+  async function saveLessonPrices(){
+    try{
+      setLpSaving(true)
+      setLpMsg(null)
+      const payload = lpRows.map(r => ({
+        id: r.id,
+        course_key: r.course_key,
+        course_label: r.course_label,
+        price_2x: r.price_2x == null || isNaN(Number(r.price_2x)) ? null : Number(r.price_2x),
+        price_1x: r.price_1x == null || isNaN(Number(r.price_1x)) ? null : Number(r.price_1x),
+        updated_at: new Date().toISOString(),
+      }))
+      const { error } = await supabase.from('lesson_prices').upsert(payload, { onConflict: 'course_key' })
+      if (error){
+        const m = (error.message || '').toLowerCase()
+        if (m.includes('permission denied') || m.includes('row level security') || m.includes('no insert policy') || m.includes('violates row-level security')){
+          setLpMsg('Uloženie zlyhalo: povoľte RLS politiky SELECT/INSERT/UPDATE pre lesson_prices (pozri README – lesson_prices).')
+          return
+        }
+        if (m.includes('relation') && m.includes('lesson_prices')){
+          setLpMsg('Uloženie zlyhalo: Vytvorte tabuľku lesson_prices (stĺpce: id, course_key, course_label, price_2x, price_1x, updated_at) – viď README.')
+          return
+        }
+        throw error
+      }
+      setLpMsg('Uložené')
+      await loadLessonPrices()
+    } catch(e:any){
+      setLpMsg(e?.message || 'Ukladanie zlyhalo')
+    } finally {
+      setLpSaving(false)
+    }
+  }
+
   const visible = tab === 'lessons' ? lessons : camp
 
   const exportCsv = () => {
@@ -327,6 +404,63 @@ export default function Admin(){
         <div style={{ display:'grid', gap:8, maxWidth: 280 }}>
           <label style={{ fontWeight:600 }}>Cena letného tábora (EUR)</label>
           <input className="input" type="number" min={0} step={1} value={csPrice} onChange={e => setCsPrice(e.target.value)} disabled={csLoading || csSaving} />
+        </div>
+      </div>
+
+      <div className="card" style={{ display:'grid', gap:12 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <strong>Cenník plaveckých lekcií</strong>
+          <div style={{ display:'flex', gap:8 }}>
+            <button className="button secondary" onClick={loadLessonPrices} disabled={lpLoading || lpSaving}>{lpLoading ? 'Načítavam…' : 'Načítať'}</button>
+            <button className="button" onClick={saveLessonPrices} disabled={lpLoading || lpSaving}>{lpSaving ? 'Ukladám…' : 'Uložiť'}</button>
+          </div>
+        </div>
+        {lpMsg && <div className="helper">{lpMsg}</div>}
+        <div style={{ overflowX:'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Kurz</th>
+                <th>2× týždenne (€)</th>
+                <th>1× týždenne (€)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lpRows.map((r, idx) => (
+                <tr key={r.course_key}>
+                  <td>{r.course_label}</td>
+                  <td style={{ maxWidth: 140 }}>
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={r.price_2x ?? ''}
+                      onChange={e => {
+                        const v = e.target.value
+                        setLpRows(rows => rows.map((x,i) => i===idx ? { ...x, price_2x: v === '' ? null : Number(v) } : x))
+                      }}
+                      disabled={lpLoading || lpSaving}
+                    />
+                  </td>
+                  <td style={{ maxWidth: 140 }}>
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={r.price_1x ?? ''}
+                      onChange={e => {
+                        const v = e.target.value
+                        setLpRows(rows => rows.map((x,i) => i===idx ? { ...x, price_1x: v === '' ? null : Number(v) } : x))
+                      }}
+                      disabled={lpLoading || lpSaving}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

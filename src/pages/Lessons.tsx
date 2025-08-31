@@ -16,19 +16,30 @@ type ApplyForm = {
   healthIssues?: string
 }
 
-const TIMESLOT_OPTIONS = [
-  'Pondelok (16:30 - 17:30) skupinové plávanie',
-  'Pondelok (16:30 - 17:30) kurz pre 3 - 4 ročné deti',
-  'Utorok (17:00 - 18:00) skupinové plávanie',
-  'Utorok (17:00 - 18:00) kondičné plávanie',
-  'Utorok (17:00 - 18:00) plávanie 11+',
-  'Streda (18:30 - 19:30) skupinové plávanie',
-  'Štvrtok (16:30 - 17:30) skupinové plávanie',
-  'Štvrtok (16:30 - 17:30) kurz pre 3 - 4 ročné deti',
-  'Piatok (17:00 - 18:00) skupinové plávanie',
-  'Piatok (17:00 - 18:00) kondičné plávanie',
-  'Piatok (17:00 - 18:00) plávanie 11+',
-] as const
+// Skupiny termínov podľa dní pre väčšiu prehľadnosť (najmä STREDA zvlášť)
+const TIMESLOT_GROUPS = {
+  'Pondelok': [
+    'Pondelok (16:30 - 17:30) skupinové plávanie',
+    'Pondelok (16:30 - 17:30) kurz pre 3 - 4 ročné deti',
+  ],
+  'Utorok': [
+    'Utorok (17:00 - 18:00) skupinové plávanie',
+    'Utorok (17:00 - 18:00) kondičné plávanie',
+    'Utorok (17:00 - 18:00) plávanie 11+',
+  ],
+  'Streda': [
+    'Streda (18:30 - 19:30) skupinové plávanie',
+  ],
+  'Štvrtok': [
+    'Štvrtok (16:30 - 17:30) skupinové plávanie',
+    'Štvrtok (16:30 - 17:30) kurz pre 3 - 4 ročné deti',
+  ],
+  'Piatok': [
+    'Piatok (17:00 - 18:00) skupinové plávanie',
+    'Piatok (17:00 - 18:00) kondičné plávanie',
+    'Piatok (17:00 - 18:00) plávanie 11+',
+  ],
+} as const
 
 export default function Lessons(){
   const { register, handleSubmit, formState: { errors, isSubmitting, isSubmitSuccessful }, watch } = useForm<ApplyForm>()
@@ -119,21 +130,29 @@ Tím SwimShark`
 
         <div>
           <label>Vyberte si deň a čas (Aquapark Delňa Prešov) <span aria-hidden="true">*</span></label>
-          <div className="options-grid">
-            {TIMESLOT_OPTIONS.map((opt) => (
-              <label key={opt} className="option-card">
-                <input
-                  type="checkbox"
-                  value={opt}
-                  disabled={inputsLocked}
-                  {...register('timeslots', {
-                    validate: (v) => (v && v.length > 0) || 'Vyberte aspoň jeden termín',
-                  })}
-                />
-                <span>{opt}</span>
-              </label>
-            ))}
-          </div>
+          {Object.entries(TIMESLOT_GROUPS).map(([day, options]) => (
+            <div key={day} style={{ marginTop: 8, marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>{day}</div>
+              <div className="options-grid">
+                {options.map((opt) => {
+                  const display = opt.replace(day + ' ', '')
+                  return (
+                    <label key={opt} className="option-card">
+                      <input
+                        type="checkbox"
+                        value={opt}
+                        disabled={inputsLocked}
+                        {...register('timeslots', {
+                          validate: (v) => (v && v.length > 0) || 'Vyberte aspoň jeden termín',
+                        })}
+                      />
+                      <span>{display}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
           {errors.timeslots && <div className="error">{(errors as any).timeslots?.message || 'Vyberte aspoň jeden termín'}</div>}
         </div>
 
