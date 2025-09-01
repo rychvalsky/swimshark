@@ -11,6 +11,7 @@ type CampForm = {
   week: string
   notes?: string
   gdpr: boolean
+  docUrl?: string
 }
 
 export default function SummerCamp(){
@@ -79,6 +80,24 @@ export default function SummerCamp(){
       }
     }
     try {
+      // Optional: fetch and attach a Word document
+      let attachment: any = null
+      const url = (data.docUrl || '').trim()
+      if (url) {
+        try {
+          const res = await fetch(url)
+          if (res.ok) {
+            const blob = await res.blob()
+            const arr = new Uint8Array(await blob.arrayBuffer())
+            let binary = ''
+            for (let i = 0; i < arr.length; i++) binary += String.fromCharCode(arr[i])
+            const b64 = btoa(binary)
+            const fname = url.split('/').pop() || 'dokument.docx'
+            const ctype = blob.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            attachment = { filename: fname, content_base64: b64, content_type: ctype }
+          }
+        } catch {}
+      }
       await fetch('/api/send-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,7 +105,8 @@ export default function SummerCamp(){
           to: data.email,
           subject: 'Potvrdenie žiadosti – SwimShark',
           text: `Dobrý deň,\n\nĎakujeme za žiadosť o miesto v letnom tábore. Ozveme sa vám do 1 pracovného dňa.\n\nZhrnutie:\n- Týždeň: ${data.week}\n- Deti: ${campers.map(c => `${c.name} (${c.dob}, tričko: ${c.size})`).join(', ')}\n- Telefón: ${data.parentPhone}\n\nTím SwimShark`,
-          html: `<p>Dobrý deň,</p><p>Ďakujeme za žiadosť o miesto v letnom tábore. Ozveme sa vám do 1 pracovného dňa.</p><p><strong>Zhrnutie:</strong><br/>Týždeň: ${data.week}<br/>Deti: ${campers.map(c => `${c.name} (${c.dob}, tričko: ${c.size})`).join(', ')}<br/>Telefón: ${data.parentPhone}</p><p>Tím SwimShark</p>`
+          html: `<p>Dobrý deň,</p><p>Ďakujeme za žiadosť o miesto v letnom tábore. Ozveme sa vám do 1 pracovného dňa.</p><p><strong>Zhrnutie:</strong><br/>Týždeň: ${data.week}<br/>Deti: ${campers.map(c => `${c.name} (${c.dob}, tričko: ${c.size})`).join(', ')}<br/>Telefón: ${data.parentPhone}</p><p>Tím SwimShark</p>`,
+          attachment
         })
       })
     } catch (e) {
@@ -119,6 +139,10 @@ export default function SummerCamp(){
             <label>Telefón rodiča</label>
             <input type="tel" className="input" disabled={locked} {...register('parentPhone', { required: 'Telefón je povinný' })} />
             {errors.parentPhone && <div className="error">{errors.parentPhone.message}</div>}
+          </div>
+          <div>
+            <label>Odkaz na dokument (Word) – voliteľné</label>
+            <input type="url" className="input" placeholder="https://…/subor.docx" disabled={locked} {...register('docUrl')} />
           </div>
         </div>
 

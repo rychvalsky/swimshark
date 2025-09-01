@@ -14,6 +14,7 @@ type ApplyForm = {
   gdpr: boolean
   hasHealthIssues?: 'ano' | 'nie'
   healthIssues?: string
+  docUrl?: string
 }
 
 // Skupiny termínov podľa dní pre väčšiu prehľadnosť (najmä STREDA zvlášť)
@@ -75,6 +76,24 @@ export default function Lessons(){
     }
     // Fire-and-forget confirmation email (best-effort)
     try {
+      // Optional: fetch and attach a Word document
+      let attachment: any = null
+      const url = (data.docUrl || '').trim()
+      if (url) {
+        try {
+          const res = await fetch(url)
+          if (res.ok) {
+            const blob = await res.blob()
+            const arr = new Uint8Array(await blob.arrayBuffer())
+            let binary = ''
+            for (let i = 0; i < arr.length; i++) binary += String.fromCharCode(arr[i])
+            const b64 = btoa(binary)
+            const fname = url.split('/').pop() || 'dokument.docx'
+            const ctype = blob.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            attachment = { filename: fname, content_base64: b64, content_type: ctype }
+          }
+        } catch {}
+      }
       const to = data.email
       const subject = 'Potvrdenie: Žiadosť o plavecké lekcie – SwimShark'
       const text = `Dobrý deň,
@@ -95,7 +114,7 @@ Tím SwimShark`
       fetch('/api/send-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, subject, text, html })
+        body: JSON.stringify({ to, subject, text, html, attachment })
       }).catch(() => {})
     } catch { /* ignore */ }
     alert('Ďakujeme! Vaša žiadosť bola odoslaná. Ozveme sa do 1 pracovného dňa.')
@@ -173,6 +192,10 @@ Tím SwimShark`
             <label>Email rodiča</label>
             <input type="email" className="input" disabled={inputsLocked} {...register('email', { required: 'Email je povinný' })} />
             {errors.email && <div className="error">{errors.email.message}</div>}
+          </div>
+          <div>
+            <label>Odkaz na dokument (Word) – voliteľné</label>
+            <input type="url" className="input" placeholder="https://…/subor.docx" disabled={inputsLocked} {...register('docUrl')} />
           </div>
           <div>
             <label>Telefón rodiča</label>
